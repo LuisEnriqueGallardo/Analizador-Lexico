@@ -1,0 +1,14 @@
+BEGIN
+    PROCEDURE CALCULAR_AREA
+    X = 10 + 20 - 5 * 2 / 4
+    Y = X * 2
+    IF X > Y THEN
+        PRINT "X es mayor que Y"
+    ELSE
+        PRINT "Y es mayor o igual que X"
+    ENDIF
+    REPEAT
+        X = X + 1
+        PRINT "Valor de X:", X
+    UNTIL X >= 100
+END
