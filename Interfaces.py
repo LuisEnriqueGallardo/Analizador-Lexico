@@ -66,8 +66,10 @@ class VentanaPrincipal(QMainWindow):
         
     def limpiarCampo(self):
         self.campoDeTexto.clear()
+        self.campoDeTexto.setReadOnly(False)
         self.campoCorrectos.clear()
         self.campoErrores.clear()
+        self.statusBar().showMessage("Listo")
         
     def importarArchivo(self):
         open_file = QFileDialog.getOpenFileName(self, "Abrir archivo", "", "Archivos de texto (*.txt)")
