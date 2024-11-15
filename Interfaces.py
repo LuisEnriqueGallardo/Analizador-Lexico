@@ -1,7 +1,9 @@
-from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QTextEdit, QMenuBar, QMenu, QStatusBar, QFileDialog, QSplitter)
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QGridLayout, QTextEdit, QMenuBar, QMenu, QStatusBar, QFileDialog, QSplitter)
 from PySide6.QtCore import Qt
 import sys
 from Analizador import lexer
+from sintaxis import Parser
+
 
 class VentanaPrincipal(QMainWindow):
     def __init__(self):
@@ -29,41 +31,68 @@ class VentanaPrincipal(QMainWindow):
         
         barraDeMenu.addMenu(menuDeArchivos)
         self.setMenuBar(barraDeMenu)
+        
+        editarTexto = menuDeArchivos.addAction("Editar Texto")
+        editarTexto.setCheckable(True)
+        editarTexto.triggered.connect(self.editarTexto)
 
         # Widget central
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         # Layout principal
-        layoutPrincipal = QVBoxLayout(central_widget)
+        layoutPrincipal = QGridLayout(central_widget)
 
         # Splitter principal para dividir en parte superior e inferior
-        splitter_principal = QSplitter(Qt.Vertical)
-        layoutPrincipal.addWidget(splitter_principal)
-
-        # Campo de texto grande superior
-        self.campoDeTexto = QTextEdit()
-        splitter_principal.addWidget(self.campoDeTexto)
-
-        # Splitter secundario para dividir la parte inferior en dos
+        splitter_principal = QSplitter(Qt.Horizontal)
+        
         splitter_inferior = QSplitter(Qt.Horizontal)
-        splitter_principal.addWidget(splitter_inferior)
+        splitter_superior = QSplitter(Qt.Vertical)
+
+        # Campo de texto para analisis
+        self.campoDeTexto = QTextEdit()
+        self.campoDeTexto.setPlaceholderText("Escriba su código aquí")
+
+        # Campo de analisis Sintactico
+        self.campoDeTextoDerecha = QTextEdit()
+        self.campoDeTextoDerecha.setReadOnly(True)
+        self.campoDeTextoDerecha.setPlaceholderText("Resultado del análisis")
 
         # Campo de texto para mostrar tokens correctos
         self.campoCorrectos = QTextEdit()
+        self.campoCorrectos.setPlaceholderText("Tokens correctos")
         self.campoCorrectos.setReadOnly(True)
-        splitter_inferior.addWidget(self.campoCorrectos)
 
         # Campo de texto para mostrar errores
         self.campoErrores = QTextEdit()
+        self.campoErrores.setPlaceholderText("Errores")
         self.campoErrores.setReadOnly(True)
-        splitter_inferior.addWidget(self.campoErrores)
 
         # Barra de estado
         status_bar = QStatusBar()
         self.setStatusBar(status_bar)
         status_bar.showMessage("Listo")
         
+        layoutPrincipal.addWidget(splitter_principal, 0, 0)
+        splitter_principal.addWidget(splitter_superior)
+        splitter_superior.addWidget(self.campoDeTexto)
+        splitter_superior.addWidget(splitter_inferior)
+        splitter_inferior.addWidget(self.campoCorrectos)
+        splitter_inferior.addWidget(self.campoErrores)
+        splitter_principal.addWidget(self.campoDeTextoDerecha)
+        
+        self.campoCorrectos.setStyleSheet("background-color: #b5da9e")
+        self.campoErrores.setStyleSheet("background-color: #f6989d")        
+        
+    def editarTexto(self):
+        if self.campoDeTexto.isReadOnly():
+            self.campoDeTexto.setReadOnly(False)
+            self.campoDeTexto.setStyleSheet("QTextEdit[readOnly=\"false\"] { background-color: white; }")
+        else:
+            self.campoDeTexto.setReadOnly(True)
+            self.campoDeTexto.setStyleSheet("QTextEdit[readOnly=\"true\"] { background-color: lightgray; }")
+        
+                 
     def limpiarCampo(self):
         self.campoDeTexto.clear()
         self.campoDeTexto.setReadOnly(False)
@@ -86,7 +115,7 @@ class VentanaPrincipal(QMainWindow):
                 
     def analizar(self):
         texto = self.campoDeTexto.toPlainText()
-        tokensOK, tokensERR = lexer(texto)
+        tokensOK, tokensERR, tokensLimpios, _ = lexer(texto)
         correctos = []
         errores = []
         
@@ -101,6 +130,19 @@ class VentanaPrincipal(QMainWindow):
                 
         self.campoCorrectos.setPlainText("\n".join([str(token) for token in correctos]))
         self.campoErrores.setPlainText("\n".join([str(token) for token in errores]))
+        if len(errores) == 0:
+            self.analizarSintax(tokensLimpios)
+        
+    def analizarSintax(self, tokens):
+        parser = Parser(tokens)
+        try:
+            resultado = parser.programa()
+            self.campoDeTextoDerecha.setPlainText(str(resultado))
+            print(f"EL TEXTO ES{parser.statements}")
+        except SyntaxError as e:
+            self.campoDeTextoDerecha.setPlainText(str(e))
+        
+        
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
